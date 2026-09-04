@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MMS Automatic Class Timer</title>
+
+<style>
+:root {
+  --text:#f6f7fb;
+  --muted:#aab2c0;
+  --warn:#f0b429;
+  --danger:#ff5d5d;
+  --good:#63d471;
+  --passing:#8dd7ff;
+  --lunch:#9ee493;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  min-height:100vh;
+  font-family:Arial, Helvetica, sans-serif;
+  background:radial-gradient(circle at top,#1c2230 0%,#0b0d10 48%,#07080a 100%);
+  color:var(--text);
+  overflow:hidden;
+}
+
+button, select { font:inherit; }
+
+.wrap {
+  width:100vw;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  padding:2.2vh 3vw;
+}
+
+.topbar {
+  display:flex;
+  justify-content:space-between;
+  gap:2vw;
+}
+
+.brandrow {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.school {
+  font-weight:800;
+  letter-spacing:.04em;
+  font-size:clamp(18px,2.4vw,38px);
+}
+
+.badge {
+  padding:.32rem .68rem;
+  border-radius:999px;
+  background:rgba(255,255,255,.10);
+  font-weight:700;
+}
+
+.subtitle {
+  margin-top:.35rem;
+  color:var(--muted);
+  font-size:clamp(13px,1.15vw,20px);
+}
+
+.clockbox { text-align:right; }
+
+#clock {
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+  font-size:clamp(20px,2.7vw,42px);
+}
+
+#date {
+  color:var(--muted);
+  margin-top:.25rem;
+}
+
+.main {
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  text-align:center;
+}
+
+#label {
+  text-transform:uppercase;
+  letter-spacing:.14em;
+  color:var(--muted);
+  font-weight:800;
+  font-size:clamp(18px,2.6vw,42px);
+  margin-bottom:1.2vh;
+}
+
+#timer {
+  font-size:clamp(100px,20vw,310px);
+  line-height:.88;
+  font-weight:900;
+  letter-spacing:-.045em;
+  font-variant-numeric:tabular-nums;
+}
+
+#message {
+  margin-top:2.4vh;
+  font-size:clamp(18px,2.3vw,36px);
+  font-weight:700;
+}
+
+#submessage {
+  margin-top:.8vh;
+  color:var(--muted);
+  font-size:clamp(14px,1.35vw,22px);
+}
+
+.bottom {
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:2vw;
+  padding-top:1.2vh;
+  border-top:1px solid rgba(255,255,255,.12);
+}
+
+.next {
+  font-size:clamp(14px,1.5vw,24px);
+}
+
+.next strong {
+  display:block;
+  margin-top:.25rem;
+  font-size:clamp(18px,2vw,30px);
+}
+
+.controls {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.settings-btn {
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.08);
+  color:white;
+  border-radius:12px;
+  padding:.65rem .9rem;
+  cursor:pointer;
+  font-weight:700;
+}
+
+.hint {
+  text-align:right;
+  color:var(--muted);
+  font-size:clamp(11px,.95vw,16px);
+}
+
+.urgent #timer { color:var(--danger); }
+.warning #timer { color:var(--warn); }
+.passing #timer { color:var(--passing); }
+.lunch #timer { color:var(--lunch); }
+.done #timer { color:var(--good); }
+
+.pulse #timer {
+  animation:pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from { transform:scale(1); }
+  to { transform:scale(1.018); }
+}
+
+.modal-backdrop {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.68);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:10;
+}
+
+.modal-backdrop.show { display:flex; }
+
+.modal {
+  width:min(520px,95vw);
+  background:#151922;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:20px;
+  padding:24px;
+}
+
+.modal h2 { margin-top:0; }
+
+.modal p { color:var(--muted); }
+
+.field label {
+  display:block;
+  font-weight:800;
+  margin-bottom:8px;
+}
+
+select {
+  width:100%;
+  padding:12px;
+  border-radius:12px;
+  background:#0f131a;
+  color:white;
+}
+
+.note {
+  color:#d7deea;
+  font-size:14px;
+  margin-top:10px;
+}
+
+.modal-actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:20px;
+}
+
+.btn {
+  border:0;
+  border-radius:12px;
+  padding:11px 16px;
+  cursor:pointer;
+  font-weight:800;
+}
+
+.secondary {
+  background:#2a303b;
+  color:white;
+}
+
+.primary {
+  background:white;
+  color:#111;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap" id="wrap">
+
+  <div class="topbar">
+    <div>
+      <div class="brandrow">
+        <div class="school">Mauriceville Middle School</div>
+        <div class="badge" id="lunchBadge">Lunch: —</div>
+      </div>
+      <div class="subtitle">Automatic Bell Schedule Countdown</div>
+    </div>
+
+    <div class="clockbox">
+      <div id="clock">--:--:--</div>
+      <div id="date">Loading...</div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="label">Loading Schedule</div>
+    <div id="timer">--:--</div>
+    <div id="message">Please wait...</div>
+    <div id="submessage"></div>
+  </div>
+
+  <div class="bottom">
+    <div class="next">
+      Next
+      <strong id="next">—</strong>
+    </div>
+
+    <div class="controls">
+      <div class="hint">
+        Press F11 for fullscreen<br>
+        Uses this computer's clock
+      </div>
+      <button class="settings-btn" id="settingsBtn">⚙ Settings</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+
+    <h2>Timer Settings</h2>
+
+    <p>
+      Choose your 5th-period lunch schedule.
+      Your choice will be remembered on this device.
+    </p>
+
+    <div class="field">
+      <label for="lunchSelect">Lunch Schedule</label>
+
+      <select id="lunchSelect">
+        <option value="A">A Lunch</option>
+        <option value="B">B Lunch</option>
+      </select>
+
+      <div class="note">
+        A Lunch: 12:00–12:30<br>
+        B Lunch: 12:52–1:22
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn secondary" id="cancelBtn">Cancel</button>
+      <button class="btn primary" id="saveBtn">Save Settings</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+
+const before = [
+
+{start:"08:20",end:"08:25",
+label:"First Bell",
+message:"Pick Up Computers",
+type:"passing"},
+
+{start:"08:25",end:"08:32",
+label:"1st Period",
+message:"Announcements",
+type:"class"},
+
+{start:"08:32",end:"09:20",
+label:"1st Period",
+message:"Class Time",
+type:"class"},
+
+{start:"09:20",end:"09:24",
+label:"Passing Period",
+message:"2nd Period begins at 9:24 AM",
+type:"passing"},
+
+{start:"09:24",end:"10:12",
+label:"2nd Period",
+message:"Class Time",
+type:"class"},
+
+{start:"10:12",end:"10:16",
+label:"Passing Period",
+message:"3rd Period begins at 10:16 AM",
+type:"passing"},
+
+{start:"10:16",end:"11:04",
+label:"3rd Period",
+message:"Class Time",
+type:"class"},
+
+{start:"11:04",end:"11:08",
+label:"Passing Period",
+message:"4th Period begins at 11:08 AM",
+type:"passing"},
+
+{start:"11:08",end:"11:56",
+label:"4th Period",
+message:"Class Time",
+type:"class"},
+
+{start:"11:56",end:"12:00",
+label:"Passing Period",
+message:"5th Period begins at 12:00 PM",
+type:"passing"}
+
+];
+
+const lunches = {
+
+A:[
+
+{start:"12:00",end:"12:30",
+label:"A Lunch",
+message:"Enjoy Lunch",
+type:"lunch"},
+
+{start:"12:30",end:"12:34",
+label:"Passing Period",
+message:"5th Period begins at 12:34 PM",
+type:"passing"},
+
+{start:"12:34",end:"13:22",
+label:"5th Period",
+message:"Class Time • A Lunch",
+type:"class"}
+
+],
+
+B:[
+
+{start:"12:00",end:"12:48",
+label:"5th Period",
+message:"Class Time • B Lunch",
+type:"class"},
+
+{start:"12:48",end:"12:52",
+label:"Passing to Lunch",
+message:"B Lunch begins at 12:52 PM",
+type:"passing"},
+
+{start:"12:52",end:"13:22",
+label:"B Lunch",
+message:"Enjoy Lunch",
+type:"lunch"}
+
+]
+
+};
+
+const after = [
+
+{start:"13:22",end:"13:26",
+label:"Passing Period",
+message:"6th Period begins at 1:26 PM",
+type:"passing"},
+
+{start:"13:26",end:"14:14",
+label:"6th Period",
+message:"Class Time",
+type:"class"},
+
+{start:"14:14",end:"14:18",
+label:"Passing Period",
+message:"7th Period begins at 2:18 PM",
+type:"passing"},
+
+{start:"14:18",end:"15:06",
+label:"7th Period",
+message:"Class Time",
+type:"class"},
+
+{start:"15:06",end:"15:10",
+label:"Passing Period",
+message:"8th Period begins at 3:10 PM",
+type:"passing"},
+
+{start:"15:10",end:"15:58",
+label:"8th Period",
+message:"Class Time",
+type:"class"},
+
+{start:"15:58",end:"16:00",
+label:"Panther Power Up",
+message:"Return Computers",
+type:"passing"}
+
+];
+
+let lunchChoice =
+localStorage.getItem("mmsLunchChoice") || "";
+
+let schedule = [];
+
+const $ = id =>
+document.getElementById(id);
+
+function buildSchedule(){
+
+const choice = lunchChoice || "B";
+
+schedule = [
+...before,
+...lunches[choice],
+...after
+];
+
+$("lunchBadge").textContent =
+`Lunch: ${choice}`;
+
+}
+
+function minutes(time){
+
+const [h,m] =
+time.split(":").map(Number);
+
+return h*60+m;
+
+}
+
+function formatTime(time){
+
+let [h,m] =
+time.split(":").map(Number);
+
+const ampm =
+h>=12 ? "PM" : "AM";
+
+h = h%12 || 12;
+
+return `${h}:${String(m).padStart(2,"0")} ${ampm}`;
+
+}
+
+function remaining(seconds){
+
+seconds =
+Math.max(0,Math.ceil(seconds));
+
+const h =
+Math.floor(seconds/3600);
+
+const m =
+Math.floor((seconds%3600)/60);
+
+const s =
+seconds%60;
+
+if(h){
+
+return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+
+}
+
+return `${m}:${String(s).padStart(2,"0")}`;
+
+}
+
+function findCurrent(now){
+
+const currentMinutes =
+now.getHours()*60 +
+now.getMinutes() +
+now.getSeconds()/60;
+
+for(let i=0;i<schedule.length;i++){
+
+if(
+currentMinutes >= minutes(schedule[i].start) &&
+currentMinutes < minutes(schedule[i].end)
+){
+
+return {
+item:schedule[i],
+index:i
+};
+
+}
+
+}
+
+return null;
+
+}
+
+function update(){
+
+const now = new Date();
+
+const wrap = $("wrap");
+
+const currentMinutes =
+now.getHours()*60 +
+now.getMinutes() +
+now.getSeconds()/60;
+
+$("clock").textContent =
+now.toLocaleTimeString([],{
+hour:"numeric",
+minute:"2-digit",
+second:"2-digit"
+});
+
+$("date").textContent =
+now.toLocaleDateString([],{
+weekday:"long",
+month:"long",
+day:"numeric",
+year:"numeric"
+});
+
+wrap.className = "wrap";
+
+if(now.getDay()===0 || now.getDay()===6){
+
+$("label").textContent =
+"No School Schedule";
+
+$("timer").textContent = "—";
+
+$("message").textContent =
+"Enjoy the weekend!";
+
+$("submessage").textContent = "";
+
+$("next").textContent =
+"School resumes on the next school day";
+
+wrap.classList.add("done");
+
+return;
+
+}
+
+const current =
+findCurrent(now);
+
+if(current){
+
+const item =
+current.item;
+
+const seconds =
+(minutes(item.end)-currentMinutes)*60;
+
+$("label").textContent =
+item.label;
+
+$("timer").textContent =
+remaining(seconds);
+
+$("message").textContent =
+item.message;
+
+if(item.type==="class"){
+
+if(seconds<=60){
+
+$("submessage").textContent =
+"1 MINUTE REMAINING";
+
+wrap.classList.add(
+"urgent","pulse"
+);
+
+}
+
+else if(seconds<=300){
+
+$("submessage").textContent =
+"5 MINUTES OR LESS REMAINING";
+
+wrap.classList.add("warning");
+
+}
+
+else{
+
+$("submessage").textContent =
+"Time Remaining";
+
+}
+
+}
+
+else{
+
+$("submessage").textContent =
+"Time Remaining";
+
+wrap.classList.add(
+item.type==="lunch"
+? "lunch"
+: "passing"
+);
+
+}
+
+const next =
+schedule[current.index+1];
+
+$("next").textContent =
+next
+? `${next.label} • ${formatTime(next.start)}`
+: "End of Day • 4:00 PM";
+
+}
+
+else if(
+currentMinutes <
+minutes(schedule[0].start)
+){
+
+const seconds =
+(minutes(schedule[0].start) -
+currentMinutes)*60;
+
+$("label").textContent =
+"Before School";
+
+$("timer").textContent =
+remaining(seconds);
+
+$("message").textContent =
+"First bell begins at 8:20 AM";
+
+$("submessage").textContent =
+"Until the school day begins";
+
+$("next").textContent =
+"First Bell • 8:20 AM";
+
+}
+
+else{
+
+$("label").textContent =
+"School Day Complete";
+
+$("timer").textContent =
+"0:00";
+
+$("message").textContent =
+"Have a great afternoon!";
+
+$("submessage").textContent = "";
+
+$("next").textContent =
+"Tomorrow • First Bell at 8:20 AM";
+
+wrap.classList.add("done");
+
+}
+
+}
+
+function openSettings(firstRun=false){
+
+$("lunchSelect").value =
+lunchChoice || "B";
+
+$("settingsModal")
+.classList.add("show");
+
+$("cancelBtn").style.display =
+firstRun ? "none" : "inline-block";
+
+}
+
+function closeSettings(){
+
+$("settingsModal")
+.classList.remove("show");
+
+$("cancelBtn").style.display =
+"inline-block";
+
+}
+
+$("settingsBtn").onclick =
+()=>openSettings(false);
+
+$("cancelBtn").onclick =
+closeSettings;
+
+$("saveBtn").onclick = ()=>{
+
+lunchChoice =
+$("lunchSelect").value;
+
+localStorage.setItem(
+"mmsLunchChoice",
+lunchChoice
+);
+
+buildSchedule();
+
+update();
+
+closeSettings();
+
+};
+
+buildSchedule();
+
+update();
+
+setInterval(update,250);
+
+if(!lunchChoice){
+
+setTimeout(
+()=>openSettings(true),
+250
+);
+
+}
+
+</script>
+
+</body>
+</html>
